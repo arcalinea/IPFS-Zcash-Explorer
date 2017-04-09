@@ -1,0 +1,10 @@
+table {
+  text-align: left;
+  margin: 0 auto;
+}
+
+td {
+  padding-left: 1em;
+  padding-right: 5em;
+  width: 200px;
+}
