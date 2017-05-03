@@ -4,9 +4,11 @@ import ipfsLogo from '../public/ipfs-logo.png';
 import zcashLogo from '../public/zcash-logo.png';
 import './styles/App.css';
 import BlockTemplate from './BlockTemplate';
-import SearchForm from './SearchForm';
-import { Navbar } from 'react-bootstrap';
-
+import TxTemplate from './TxTemplate';
+import { Navbar, Button } from 'react-bootstrap';
+import {BrowserRouter as Router, browserHistory} from 'react-router-dom';
+import {LoadData} from './helpers';
+import Header from './Header';
 
 
 var dummyData = {
@@ -20,76 +22,51 @@ var dummyData = {
   };
 
 var dummyQuery = 'z4QJh988wttY4rTJgLpmx57E3gEbun1vXmMVpBAwbA4pzE8MkLw';
+// console.log(LoadData(this.state.query))
 
 class App extends Component {
   constructor(){
     super();
     this.state = {
-        data: dummyData,
+        data: '',
         query: dummyQuery
     };
   };
 
-  loadData (newQuery) {
-    console.log('loading data')
-    var request = new XMLHttpRequest();
-    console.log('newQuery', newQuery)
-    request.open('GET', "http://107.170.229.52:8080/api/v0/dag/get/" + newQuery, true);
-        request.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-        //this callback gets called when the server responds to the ajax call
-        request.onreadystatechange = function(){
-            if (request.readyState === 4 && request.status === 200){
-                var returnedJson = JSON.parse(request.responseText);
-                console.log('returned json', returnedJson)
-                //this is where you would want to run setState if you need the returned Json for it.
-                this.setState({data: returnedJson});
-            }
-            else if (request.readyState === 4 && request.status !== 200){
-                alert('error');
-            }
-        }.bind(this);
-        request.send();
+  componentWillMount(){
+    console.log("preparing to call loaddata")
+    var thisState = this;
+    LoadData(this.state.query, function(res){
+      console.log("Success! Response:", res)
+      thisState.setState({data : res});
+    });
   }
 
-  componentWillMount () {
-    this.loadData(this.state.query);
-  }
-
-  searchCallback(value) {
-    this.setState({query: value});
-    this.loadData(value);
-  }
-
-  displayHeader(){
-    // <img src={ipfsLogo} className="ipfsLogo" alt="logo" />
-    // <img src={zcashLogo} className="zcashLogo" alt="logo" />
-    return (
-      <div className="App-header">
-        <Navbar>
-          <Navbar.Header>
-            <Navbar.Brand>
-              <a href="#">IPFS Zcash Explorer</a>
-            </Navbar.Brand>
-            <Navbar.Toggle />
-          </Navbar.Header>
-          <Navbar.Collapse>
-            <SearchForm cb={this.searchCallback.bind(this)}/>
-          </Navbar.Collapse>
-        </Navbar>
-      </div>
-    );
+  goBack(e){
+    console.log("hist", Router.History)
+    if (this.history.state === null) {
+      e.preventDefault();
+    } else {
+      this.history.goBack();
+    }
   }
 
   render() {
-    var header = this.displayHeader()
-    return (
-      <div className="App">
-        {header}
-        <div className="data-table">
-          <BlockTemplate data={this.state.data} cb={this.searchCallback.bind(this)}/>
-        </div>
-      </div>
-    );
+    console.log("APP ENTRY POINT: ", this.state.data)
+    if (this.state.data === ''){
+      return (
+          <div className="loading">
+            <img src={ipfsLogo}/>
+          </div>
+      )
+    } else {
+      console.log("APP: Displaying Block Template", this.state.data)
+      return (
+          <div className="data-table">
+            <BlockTemplate data={this.state.data} />
+          </div>
+      )
+    }
   }
 }
 

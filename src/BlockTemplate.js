@@ -1,33 +1,76 @@
 import React, { Component } from 'react';
 import './styles/BlockTemplate.css';
 import { Table } from 'react-bootstrap';
-import TxTemplate from './TxTemplate';
+import { Link } from 'react-router-dom';
+import {browserHistory} from 'react-router';
+import {LoadData} from './helpers';
+import ipfsLogo from '../public/ipfs-logo.png';
 
+// load next block and tx data while on this page
+var dummyQuery = 'z4QJh988wttY4rTJgLpmx57E3gEbun1vXmMVpBAwbA4pzE8MkLw';
 
 class BlockTemplate extends Component {
     constructor(props) {
       super(props);
-
-      this.handleClick = this.handleClick.bind(this);
+      var block = props.match.params.block
+      console.log("BLOCK hash", block)
+      this.state = {
+        txData: '',
+        data: '',
+        query: block
+      }
+      if(block === undefined){
+        this.state.query = dummyQuery;
+      }
+      console.log("This state in blocktemplate constructor", this.state)
     }
 
-    handleClick(e){
-      e.preventDefault();
-      console.log("The link was clicked, search target:", e.target.getAttribute('href'))
-      var hash = e.target.getAttribute('href');
-      this.props.cb(hash)
+    componentWillMount(){
+      console.log("preparing to call loaddata")
+      var thisState = this;
+      LoadData(this.state.query, function(res){
+        thisState.setState({data : res});
+      });
     }
 
-    actionLink(hash){
-      return <a href={hash} onClick={this.handleClick}>{hash}</a>
-    }
+    // componentDidMount(){
+    //   var thisState = this;
+    //   console.log("this state data", this.state.data)
+    //   var hash = this.state.data['tx']['/']
+    //   console.log("Loading data for tx after block component mounted")
+    //   LoadData(hash, function(res){
+    //     console.log("Success in pre-loading TX Data! Response:", res)
+    //     thisState.setState({txData: res})
+    //     console.log("This props in loaddata", thisState.state)
+    //   });
+    //   // console.log("Thisprops.state txdata", this.state.txData)
+    // }
+
+    // loadTx(hash){
+    //   var thisState = this;
+    //   LoadData(hash, function(res){
+    //     console.log("Success in pre-loading TX Data! Response:", res)
+    //     return {
+    //       res
+    //     }
+    //   });
+    // }
 
     displayBlock(data) {
       return Object.keys(data).map(function(key) {
         // handle the column data within each row
-        var value;
-        if (key === 'parent' || key === 'tx'){
-          value = this.actionLink(data[key]['/']);
+        var value, hash, path;
+        if (key === 'parent'){
+          hash = data[key]['/'];
+          path = "/block/" + hash
+          value = <Link to={path}>{hash}</Link>
+          // value = this.actionLink(data[key]['/']);
+        } else if (key === 'tx'){
+          hash = data[key]['/'];
+          path = "/tx/" + hash
+          // onClick={this.loadTx(hash)}
+          // value = <Link to={{pathname: path, txstate: this.state.txData}}>{hash}</Link>
+          value = <Link to={path}>{hash}</Link>
         } else {
           value = data[key]
         }
@@ -41,29 +84,25 @@ class BlockTemplate extends Component {
     }
 
     render () {
-        var data = this.props.data;
+      if (this.state.data === ''){
+        return (
+            <div className="loading">
+              <img alt="logo" src={ipfsLogo}/>
+            </div>
+        )
+      } else {
         var tableData;
-        if(data.inputs || data.outputs || data.joinSplits) {
-          return (
-              <TxTemplate data={data}/>
-          );
-        }
-        else if(data.difficulty){
-          tableData = this.displayBlock(data)
-          return (
-            <div>
+        console.log("In BlockTemplate display data", this.state.data)
+        tableData = this.displayBlock(this.state.data)
+        return (
+            <div className="data-table">
               <h3>Block Data</h3>
-              <Table striped responsive="true">
+              <Table striped>
                   <tbody>{tableData}</tbody>
               </Table>
             </div>
-          );
-        }
-        else if(Array.isArray(data)){
-          return (
-              <TxTemplate data={data}/>
-          );
-        }
+        )
+      }
     }
 };
 
